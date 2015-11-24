@@ -48,6 +48,7 @@ module.exports = postcss.plugin('postcss-cachebuster', function (opts) {
   opts = opts || {};
   opts.imagesPath = opts.imagesPath || '';
   opts.type = opts.type || 'mtime';
+  opts.absoluteUrls = opts.absoluteUrls || false;
 
   return function (css) {
 
@@ -63,7 +64,6 @@ module.exports = postcss.plugin('postcss-cachebuster', function (opts) {
         return;
       }
 
-      var inputPath = url.parse(inputFile);
       var pattern = /url\(('|")?([^'"\)]+)('|")?\)/g;
 
       declaration.value = declaration.value.replace(pattern, function (match, quote, originalUrl) {
@@ -87,9 +87,18 @@ module.exports = postcss.plugin('postcss-cachebuster', function (opts) {
           assetUrl.search = '?v' + cachebuster;
         }
 
-        return 'url(' + quote + url.format(assetUrl) + quote + ')';
+        var formattedUrl = url.format(assetUrl);
+
+        if (opts.absoluteUrls) {
+          var siteRootPath = path.join(process.cwd(), opts.imagesPath);
+          var cssDirUrl = '/' + path.dirname(inputFile).replace(siteRootPath, '') + '/';
+          formattedUrl = url.resolve(cssDirUrl, assetUrl);
+        }
+
+        return 'url(' + quote + formattedUrl + quote + ')';
       });
     });
 
   };
 });
+
